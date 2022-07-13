@@ -1,24 +1,13 @@
 #!/usr/bin/env ruby
 
-require "packetgen"
 require "concurrent"
 require "bnetd"
 
-Options = Struct.new(:interface)
 parser = Bnetd::Parser.new(ARGV)
-options = parser.parse
+options = parser.parse!
 
-database_name = options[:database_name]
-
-database_host = "127.0.0.1"
-database_host = options[:database_host] unless options[:database_host].nil?
-
-database_port = 27_017
-database_port = options[:database_port] unless options[:database_port].nil?
-
-interface = options[:interface]
-
-ports = options[:ports]
+# deconstruct hashmap and create variables from keys
+options => {database_name:, database_host:, database_port:, interface:, ports:}
 
 pool = Concurrent::ThreadPoolExecutor.new(
   min_threads: [2, Concurrent.processor_count].max,
@@ -26,11 +15,12 @@ pool = Concurrent::ThreadPoolExecutor.new(
   max_queue: [2, Concurrent.processor_count].max * 5,
   fallback_policy: :caller_runs,
 )
+sniffer = Bnetd::NetworkSniffer.new(interface: interface)
 
 ports.each do |port|
   pool.post do
     connector = Bnetd::DbConnector.new(database_host, database_port, database_name)
-    PacketGen.capture(iface: interface, filter: "src port #{port}") do |raw_packets|
+    sniffer.capture(filter: "src port #{port}") do |raw_packets|
       connector.insert(:nic_protocol_traffic, {
                          ip: raw_packets.ip.src,
                          pkt_len: raw_packets.ip.length,
