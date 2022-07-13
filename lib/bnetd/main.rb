@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
 
 require 'packetgen'
-require 'mongo'
 require 'optparse'
-require_relative './parser'
 require 'concurrent'
+require_relative './parser'
+require_relative './db_connector'
 
 Options = Struct.new(:interface)
 parser = Parser.new(ARGV)
@@ -22,20 +22,6 @@ interface = options[:interface]
 
 ports = options[:ports]
 
-def insert_db(port, interface, collection)
-  PacketGen.capture(iface: interface, filter: "src port #{port}") do |raw_packets|
-    result = collection.insert_one(
-      {
-        ip: raw_packets.ip.src,
-        pkt_len: raw_packets.ip.length,
-        ts: Time.new.utc.to_i,
-        port: port,
-        iface: interface
-      }
-    )
-  end
-end
-
 pool = Concurrent::ThreadPoolExecutor.new(
   min_threads: [2, Concurrent.processor_count].max,
   max_threads: [2, Concurrent.processor_count].max,
@@ -45,10 +31,16 @@ pool = Concurrent::ThreadPoolExecutor.new(
 
 ports.each do |port|
   pool.post do
-    client = Mongo::Client.new(["#{database_host}:#{database_port}"], database: database_name)
-    collection = client[:nic_protocol_traffic]
-
-    insert_db(port, interface, collection)
+    connector = DbConnector.new(database_host, database_port, database_name)
+    PacketGen.capture(iface: interface, filter: "src port #{port}") do |raw_packets|
+      connector.insert(:nic_protocol_traffic, {
+                         ip: raw_packets.ip.src,
+                         pkt_len: raw_packets.ip.length,
+                         ts: Time.new.utc.to_i,
+                         port: port,
+                         iface: interface
+                       })
+    end
   end
 end
 
