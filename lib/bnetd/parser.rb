@@ -1,5 +1,3 @@
-require_relative './required_argument_exception.rb'
-
 class Parser
   def initialize(opts)
     @options = opts

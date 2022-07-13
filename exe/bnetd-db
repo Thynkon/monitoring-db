@@ -3,8 +3,6 @@
 require 'packetgen'
 require 'optparse'
 require 'concurrent'
-require_relative './parser'
-require_relative './db_connector'
 
 Options = Struct.new(:interface)
 parser = Parser.new(ARGV)
@@ -34,12 +32,12 @@ ports.each do |port|
     connector = DbConnector.new(database_host, database_port, database_name)
     PacketGen.capture(iface: interface, filter: "src port #{port}") do |raw_packets|
       connector.insert(:nic_protocol_traffic, {
-                         ip: raw_packets.ip.src,
-                         pkt_len: raw_packets.ip.length,
-                         ts: Time.new.utc.to_i,
-                         port: port,
-                         iface: interface
-                       })
+        ip: raw_packets.ip.src,
+        pkt_len: raw_packets.ip.length,
+        ts: Time.new.utc.to_i,
+        port: port,
+        iface: interface
+      })
     end
   end
 end
