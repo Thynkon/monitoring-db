@@ -2,7 +2,10 @@
 
 require_relative "bnetd/version"
 
+require "zeitwerk"
+loader = Zeitwerk::Loader.for_gem
+loader.setup # ready!
+
 module Bnetd
   class Error < StandardError; end
-  # Your code goes here...
 end

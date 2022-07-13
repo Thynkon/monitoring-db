@@ -35,6 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.2"
   spec.add_development_dependency "rubocop"
   spec.add_development_dependency "rubocop-performance"
+  spec.add_development_dependency "rubocop-rspec"
   spec.add_dependency "concurrent-ruby"
   spec.add_dependency "mongo"
   spec.add_dependency "packetgen"
