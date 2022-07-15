@@ -1,4 +1,5 @@
 require "optparse"
+
 module Bnetd
   class Parser
     def initialize(opts)

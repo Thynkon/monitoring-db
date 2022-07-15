@@ -5,6 +5,7 @@ require "bnetd"
 
 parser = Bnetd::Parser.new(ARGV)
 options = parser.parse!
+logger = Bnetd::Logging.logger
 
 # deconstruct hashmap and create variables from keys
 options => {database_name:, database_host:, database_port:, interface:, ports:}
@@ -19,6 +20,7 @@ sniffer = Bnetd::NetworkSniffer.new(interface: interface)
 
 ports.each do |port|
   pool.post do
+    logger.info("Creating a new thread for port => #{port}")
     connector = Bnetd::DbConnector.new(database_host, database_port, database_name)
     sniffer.capture(filter: "src port #{port}") do |raw_packets|
       connector.insert(:nic_protocol_traffic, {
@@ -32,5 +34,8 @@ ports.each do |port|
   end
 end
 
+logger.info("Shutting down threads...")
 pool.shutdown
+
+logger.info("Waiting for thread pool to finish...")
 pool.wait_for_termination
